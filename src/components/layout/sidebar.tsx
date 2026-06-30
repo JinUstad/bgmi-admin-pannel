@@ -35,16 +35,15 @@ export function Sidebar() {
         {navItems.map((item) => {
           const isActive = item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith(item.href + '/'));
           const Icon = item.icon;
-          
+
           return (
-            <Link 
+            <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                isActive 
-                  ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' 
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
+                  ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
                   : 'text-white/60 hover:text-white hover:bg-white/5 border border-transparent'
-              }`}
+                }`}
             >
               <Icon className="w-5 h-5" />
               <span className="font-bold uppercase tracking-widest text-xs">{item.name}</span>
@@ -54,11 +53,12 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-white/10">
-        <button 
+        <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-white/60 hover:text-red-400 hover:bg-red-400/10 transition-all border border-transparent hover:border-red-400/20"
         >
-          <LogOut className="w-5 h-5" />
+          {/* comment check */}
+          <LogOut className="w-5 h-5  " />
           <span className="font-bold uppercase tracking-widest text-xs">Logout</span>
         </button>
       </div>

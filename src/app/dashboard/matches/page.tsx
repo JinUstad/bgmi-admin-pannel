@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Gamepad2, Users, CheckCircle2, Clock, PlayCircle, Loader2, Save, Key, Edit2, Trash2 } from 'lucide-react';
 
 const TIME_SLOTS = [
-  { value: '9-10am', label: '9:00 AM - 10:00 AM' },
+  // { value: '9-10am', label: '9:00 AM - 10:00 AM' },
   { value: '10-11am', label: '10:00 AM - 11:00 AM' },
   { value: '11-12pm', label: '11:00 AM - 12:00 PM' },
   { value: '12-1pm', label: '12:00 PM - 1:00 PM' },
@@ -19,7 +19,7 @@ export default function MatchesPage() {
   const [matches, setMatches] = useState<any[]>([]);
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [editRoomId, setEditRoomId] = useState<string | null>(null);
   const [roomData, setRoomData] = useState({ id: '', password: '' });
 
@@ -30,14 +30,14 @@ export default function MatchesPage() {
       .from('registrations')
       .select('time_slot, payment_status, team_name, full_name, bgmi_id')
       .eq('payment_status', 'verified');
-    
+
     setRegistrations(regData || []);
 
     // Fetch matches
     const { data: matchData } = await supabase
       .from('matches')
       .select('*');
-    
+
     setMatches(matchData || []);
     setLoading(false);
   };
@@ -51,7 +51,7 @@ export default function MatchesPage() {
       time_slot: timeSlot,
       status: 'pending'
     }]);
-    
+
     if (error) alert('Failed to create match: ' + error.message);
     else fetchAllData();
   };
@@ -67,7 +67,7 @@ export default function MatchesPage() {
       .from('matches')
       .update({ room_id: roomData.id, room_password: roomData.password })
       .eq('id', id);
-      
+
     if (error) {
       alert('Failed to save room details: ' + error.message);
     } else {
@@ -145,11 +145,11 @@ export default function MatchesPage() {
             const match = matches.find(m => m.time_slot === slot.value);
 
             return (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                key={slot.value} 
+                key={slot.value}
                 className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-xl"
               >
                 {/* Header */}
@@ -159,11 +159,10 @@ export default function MatchesPage() {
                     <p className="text-white/50 text-sm mt-1">{slotTeams} / 6 Teams Registered</p>
                   </div>
                   {match ? (
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${
-                      match.status === 'ongoing' ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20' :
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${match.status === 'ongoing' ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20' :
                       match.status === 'completed' ? 'bg-green-500/10 text-green-500 border border-green-500/20' :
-                      'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
-                    }`}>
+                        'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
+                      }`}>
                       {match.status === 'ongoing' && <PlayCircle className="w-3 h-3" />}
                       {match.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
                       {match.status === 'pending' && <Clock className="w-3 h-3" />}
@@ -179,7 +178,7 @@ export default function MatchesPage() {
                   {!match ? (
                     <div className="flex flex-col items-center justify-center py-6 text-center">
                       <Gamepad2 className="w-12 h-12 text-white/10 mb-3" />
-                      <button 
+                      <button
                         onClick={() => createMatch(slot.value)}
                         className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg font-bold text-sm transition-colors"
                       >
@@ -188,7 +187,7 @@ export default function MatchesPage() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      
+
                       {/* Room Details Section */}
                       <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                         <div className="flex items-center justify-between mb-4">
@@ -197,7 +196,7 @@ export default function MatchesPage() {
                           </h4>
                           <div className="flex items-center gap-3">
                             {editRoomId !== match.id && (
-                              <button 
+                              <button
                                 onClick={() => {
                                   setEditRoomId(match.id);
                                   setRoomData({ id: match.room_id || '', password: match.room_password || '' });
@@ -208,7 +207,7 @@ export default function MatchesPage() {
                                 <Edit2 className="w-4 h-4" />
                               </button>
                             )}
-                            <button 
+                            <button
                               onClick={() => deleteMatch(match.id)}
                               title="Delete Match"
                               className="text-white/40 hover:text-red-500 transition-colors"
@@ -220,28 +219,28 @@ export default function MatchesPage() {
 
                         {editRoomId === match.id ? (
                           <div className="space-y-3">
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               placeholder="Room ID"
                               value={roomData.id}
                               onChange={(e) => setRoomData({ ...roomData, id: e.target.value })}
                               className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500 text-sm"
                             />
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               placeholder="Room Password"
                               value={roomData.password}
                               onChange={(e) => setRoomData({ ...roomData, password: e.target.value })}
                               className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500 text-sm"
                             />
                             <div className="flex gap-2">
-                              <button 
+                              <button
                                 onClick={() => saveRoomDetails(match.id)}
                                 className="flex-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg py-2 text-sm font-bold transition-colors flex items-center justify-center gap-2"
                               >
                                 <Save className="w-4 h-4" /> Save
                               </button>
-                              <button 
+                              <button
                                 onClick={() => setEditRoomId(null)}
                                 className="px-4 border border-white/10 hover:bg-white/5 text-white rounded-lg py-2 text-sm font-bold transition-colors"
                               >
@@ -281,9 +280,8 @@ export default function MatchesPage() {
                                   <p className="text-white text-sm font-bold truncate">{team.team_name || team.full_name}</p>
                                   <p className="text-white/40 text-[10px] truncate">ID: {team.bgmi_id}</p>
                                 </div>
-                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 ${
-                                  idx < 3 ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'
-                                }`}>
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 ${idx < 3 ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'
+                                  }`}>
                                   Team {idx < 3 ? 'A' : 'B'}
                                 </span>
                               </div>
@@ -295,7 +293,7 @@ export default function MatchesPage() {
                       {/* Match Actions */}
                       <div className="flex flex-wrap gap-2">
                         {match.status === 'pending' && (
-                          <button 
+                          <button
                             onClick={() => updateStatus(match.id, 'ongoing')}
                             className="flex-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg py-2.5 text-sm font-bold transition-colors flex items-center justify-center gap-2"
                           >
@@ -303,7 +301,7 @@ export default function MatchesPage() {
                           </button>
                         )}
                         {match.status === 'ongoing' && (
-                          <button 
+                          <button
                             onClick={() => updateStatus(match.id, 'completed')}
                             className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-lg py-2.5 text-sm font-bold transition-colors flex items-center justify-center gap-2"
                           >

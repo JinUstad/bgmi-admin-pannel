@@ -5,17 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gamepad2, Users, CheckCircle2, Clock, PlayCircle, Loader2, Save, Key, Edit2, Trash2 } from 'lucide-react';
 
-const TIME_SLOTS = [
-  // { value: '9-10am', label: '9:00 AM - 10:00 AM' },
-  { value: '10-11am', label: '10:00 AM - 11:00 AM' },
-  { value: '11-12pm', label: '11:00 AM - 12:00 PM' },
-  { value: '12-1pm', label: '12:00 PM - 1:00 PM' },
-  { value: '2-3pm', label: '2:00 PM - 3:00 PM' },
-  { value: '3-4pm', label: '3:00 PM - 4:00 PM' },
-  { value: '4-5pm', label: '4:00 PM - 5:00 PM' },
-];
-
 export default function MatchesPage() {
+  const [timeSlots, setTimeSlots] = useState<{ value: string, label: string, capacity: number }[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +16,32 @@ export default function MatchesPage() {
 
   const fetchAllData = async () => {
     setLoading(true);
+
+    // Fetch tournament slots
+    const { data: tourData } = await supabase
+      .from('upcoming_tournaments')
+      .select('slots, slot_capacity')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (tourData && tourData.slots && tourData.slots.length > 0) {
+      setTimeSlots(tourData.slots.map((s: any) => {
+        if (typeof s === 'string') {
+          return { value: s, label: s, capacity: tourData.slot_capacity || 6 };
+        }
+        let timeStr = s.time;
+        if (s.startHour) {
+          timeStr = `${s.startHour}:${s.startMin} ${s.startAmPm} - ${s.endHour}:${s.endMin} ${s.endAmPm}`;
+        }
+        return { value: timeStr, label: timeStr, capacity: s.capacity || tourData.slot_capacity || 6 };
+      }));
+    } else {
+      setTimeSlots([
+        { value: '10:00 AM - 11:00 AM', label: '10:00 AM - 11:00 AM', capacity: 6 }
+      ]);
+    }
+
     // Fetch all verified registrations to count teams
     const { data: regData } = await supabase
       .from('registrations')
@@ -139,7 +156,7 @@ export default function MatchesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {TIME_SLOTS.map((slot, index) => {
+          {timeSlots.map((slot, index) => {
             const registeredTeams = registrations.filter(r => r.time_slot === slot.value);
             const slotTeams = registeredTeams.length;
             const match = matches.find(m => m.time_slot === slot.value);
@@ -149,14 +166,14 @@ export default function MatchesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                key={slot.value}
+                key={`${slot.value}-${index}`}
                 className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-xl"
               >
                 {/* Header */}
                 <div className="bg-white/5 p-5 border-b border-white/10 flex items-center justify-between">
                   <div>
                     <h3 className="text-white font-bold">{slot.label}</h3>
-                    <p className="text-white/50 text-sm mt-1">{slotTeams} / 6 Teams Registered</p>
+                    <p className="text-white/50 text-sm mt-1">{slotTeams} / {slot.capacity} Teams Registered</p>
                   </div>
                   {match ? (
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${match.status === 'ongoing' ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20' :
@@ -266,7 +283,7 @@ export default function MatchesPage() {
                       <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="text-white/70 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                            <Users className="w-4 h-4" /> Registered Teams ({slotTeams}/6)
+                            <Users className="w-4 h-4" /> Registered Teams ({slotTeams}/{slot.capacity})
                           </h4>
                           <span className="text-[10px] text-white/40 uppercase tracking-widest">3 vs 3 Format</span>
                         </div>

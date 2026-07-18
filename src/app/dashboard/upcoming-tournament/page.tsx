@@ -7,6 +7,7 @@ import { Loader2, Save, Image as ImageIcon, Type, Trophy, Plus, X } from "lucide
 const HOURS = Array.from({length: 12}, (_, i) => (i + 1).toString().padStart(2, '0'));
 const MINS = ['00', '15', '30', '45'];
 const AMPM = ['AM', 'PM'];
+const PREDEFINED_MAPS = ['Erangel', 'Miramar', 'Sanhok', 'Vikendi', 'Livik', 'Karakin', 'Nusa', 'WoW', 'Quick Match', 'TDM'];
 
 export default function UpcomingTournamentAdmin() {
   const [loading, setLoading] = useState(true);
@@ -17,6 +18,10 @@ export default function UpcomingTournamentAdmin() {
     headline: "Upcoming Tournament",
     match_name: "TDM Knockout match coming soon",
     bg_image_url: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070",
+    tournament_date: "2026-01-08",
+    match_mode: "Squad",
+    map_area: "TDM",
+    custom_map_area: "",
     slots: [
       { startHour: "10", startMin: "00", startAmPm: "AM", endHour: "11", endMin: "00", endAmPm: "AM", capacity: 6 }
     ]
@@ -43,6 +48,10 @@ export default function UpcomingTournamentAdmin() {
         headline: data.headline || "",
         match_name: data.match_name || "",
         bg_image_url: data.bg_image_url || "",
+        tournament_date: data.tournament_date || "",
+        match_mode: data.match_mode || "Squad",
+        map_area: (data.map_area && PREDEFINED_MAPS.includes(data.map_area)) ? data.map_area : (data.map_area ? 'Custom' : 'TDM'),
+        custom_map_area: (data.map_area && !PREDEFINED_MAPS.includes(data.map_area)) ? data.map_area : "",
         slots: Array.isArray(data.slots) && data.slots.length > 0
           ? data.slots.map((s: any) => {
               if (s.startHour) return s; // already new format
@@ -74,6 +83,9 @@ export default function UpcomingTournamentAdmin() {
             headline: formData.headline,
             match_name: formData.match_name,
             bg_image_url: formData.bg_image_url,
+            tournament_date: formData.tournament_date,
+            match_mode: formData.match_mode,
+            map_area: formData.map_area === 'Custom' ? formData.custom_map_area : formData.map_area,
             slots: formData.slots,
             updated_at: new Date().toISOString()
           })
@@ -169,8 +181,68 @@ export default function UpcomingTournamentAdmin() {
               />
             </div>
 
-            {/* Date and Capacity Removed based on user feedback */}
+            {/* Date, Mode, and Map Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="flex items-center gap-2 text-white/70 text-sm font-medium mb-2">
+                  <Type className="w-4 h-4 text-yellow-500" />
+                  Tournament Date
+                </label>
+                <input 
+                  type="date"
+                  min="2024-01-01"
+                  max="2099-12-31"
+                  value={formData.tournament_date}
+                  onChange={(e) => setFormData({ ...formData, tournament_date: e.target.value })}
+                  className="w-full bg-black border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-yellow-500/50 transition-colors"
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+              
+              <div>
+                <label className="flex items-center gap-2 text-white/70 text-sm font-medium mb-2">
+                  <Type className="w-4 h-4 text-yellow-500" />
+                  Match Mode
+                </label>
+                <select 
+                  value={formData.match_mode}
+                  onChange={(e) => setFormData({ ...formData, match_mode: e.target.value })}
+                  className="w-full bg-black border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-yellow-500/50 transition-colors appearance-none"
+                >
+                  <option value="Solo">Solo</option>
+                  <option value="Duo">Duo</option>
+                  <option value="Squad">Squad</option>
+                  <option value="TDM">TDM</option>
+                </select>
+              </div>
 
+              <div className="flex flex-col">
+                <label className="flex items-center gap-2 text-white/70 text-sm font-medium mb-2">
+                  <Type className="w-4 h-4 text-yellow-500" />
+                  Tournament Map/Area
+                </label>
+                <select 
+                  value={formData.map_area}
+                  onChange={(e) => setFormData({ ...formData, map_area: e.target.value })}
+                  className="w-full bg-black border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-yellow-500/50 transition-colors appearance-none"
+                >
+                  {PREDEFINED_MAPS.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                  <option value="Custom">Custom...</option>
+                </select>
+                {formData.map_area === 'Custom' && (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter custom map/area..."
+                    value={formData.custom_map_area}
+                    onChange={(e) => setFormData({ ...formData, custom_map_area: e.target.value })}
+                    className="w-full bg-black border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-yellow-500/50 transition-colors mt-3"
+                  />
+                )}
+              </div>
+            </div>
             {/* Dynamic Slots */}
             <div>
               <div className="flex items-center justify-between mb-2">

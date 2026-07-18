@@ -243,28 +243,46 @@ export default function LiveStreamPage() {
             {pastStreams.length === 0 ? (
               <p className="text-white/30 text-sm">No past streams added yet.</p>
             ) : (
-              <div className="space-y-3">
-                {pastStreams.map((stream) => (
-                  <div key={stream.id} className="flex items-center justify-between p-4 bg-[#111] border border-white/5 rounded-xl">
-                    <div className="flex items-center gap-4">
-                      {stream.thumbnail_url && (
-                        <img src={stream.thumbnail_url} alt={stream.title} className="w-20 h-12 object-cover rounded-md" />
-                      )}
-                      <div>
-                        <h4 className="text-white font-bold">{stream.title}</h4>
-                        <a href={stream.url} target="_blank" rel="noreferrer" className="text-yellow-500 text-xs hover:underline">
-                          {stream.url}
-                        </a>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDeletePastStream(stream.id)}
-                      className="p-2 text-white/50 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
+              <div className="overflow-x-auto rounded-xl border border-white/10 bg-[#111]">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-white/5">
+                      <th className="px-6 py-4 text-xs font-bold text-white/50 uppercase tracking-widest">Thumbnail</th>
+                      <th className="px-6 py-4 text-xs font-bold text-white/50 uppercase tracking-widest">Stream Info</th>
+                      <th className="px-6 py-4 text-xs font-bold text-white/50 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {pastStreams.map((stream) => (
+                      <tr key={stream.id} className="hover:bg-white/5 transition-colors group">
+                        <td className="px-6 py-4 whitespace-nowrap w-32">
+                          {stream.thumbnail_url ? (
+                            <img src={stream.thumbnail_url} alt={stream.title} className="w-24 h-14 object-cover rounded-md border border-white/10 shadow-sm" />
+                          ) : (
+                            <div className="w-24 h-14 bg-white/5 rounded-md border border-white/10 flex items-center justify-center">
+                               <MonitorPlay className="w-5 h-5 text-white/20" />
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <h4 className="text-white font-bold text-sm mb-1">{stream.title}</h4>
+                          <a href={stream.url} target="_blank" rel="noreferrer" className="text-yellow-500/80 hover:text-yellow-500 text-xs hover:underline truncate inline-block max-w-[200px] sm:max-w-xs md:max-w-md lg:max-w-lg">
+                            {stream.url}
+                          </a>
+                        </td>
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => handleDeletePastStream(stream.id)}
+                            className="p-2 text-white/40 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                            title="Delete Stream"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

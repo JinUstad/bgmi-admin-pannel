@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Save, Image as ImageIcon, Type, Trophy } from "lucide-react";
+import { Loader2, Save, Image as ImageIcon, Type, Trophy, Plus, X } from "lucide-react";
+
+const HOURS = Array.from({length: 12}, (_, i) => (i + 1).toString().padStart(2, '0'));
+const MINS = ['00', '15', '30', '45'];
+const AMPM = ['AM', 'PM'];
 
 export default function UpcomingTournamentAdmin() {
   const [loading, setLoading] = useState(true);
@@ -12,7 +16,10 @@ export default function UpcomingTournamentAdmin() {
   const [formData, setFormData] = useState({
     headline: "Upcoming Tournament",
     match_name: "TDM Knockout match coming soon",
-    bg_image_url: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070"
+    bg_image_url: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070",
+    slots: [
+      { startHour: "10", startMin: "00", startAmPm: "AM", endHour: "11", endMin: "00", endAmPm: "AM", capacity: 6 }
+    ]
   });
 
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -33,9 +40,22 @@ export default function UpcomingTournamentAdmin() {
     if (data) {
       setId(data.id);
       setFormData({
-        headline: data.headline,
-        match_name: data.match_name,
-        bg_image_url: data.bg_image_url
+        headline: data.headline || "",
+        match_name: data.match_name || "",
+        bg_image_url: data.bg_image_url || "",
+        slots: Array.isArray(data.slots) && data.slots.length > 0
+          ? data.slots.map((s: any) => {
+              if (s.startHour) return s; // already new format
+              // fallback for older formats
+              return { 
+                startHour: "10", startMin: "00", startAmPm: "AM", 
+                endHour: "11", endMin: "00", endAmPm: "AM", 
+                capacity: s.capacity || data.slot_capacity || 6 
+              };
+            })
+          : [
+              { startHour: "10", startMin: "00", startAmPm: "AM", endHour: "11", endMin: "00", endAmPm: "AM", capacity: 6 }
+            ]
       });
     }
     setLoading(false);
@@ -54,6 +74,7 @@ export default function UpcomingTournamentAdmin() {
             headline: formData.headline,
             match_name: formData.match_name,
             bg_image_url: formData.bg_image_url,
+            slots: formData.slots,
             updated_at: new Date().toISOString()
           })
           .eq('id', id);
@@ -146,6 +167,119 @@ export default function UpcomingTournamentAdmin() {
                 className="w-full bg-black border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-yellow-500/50 transition-colors"
                 placeholder="https://..."
               />
+            </div>
+
+            {/* Date and Capacity Removed based on user feedback */}
+
+            {/* Dynamic Slots */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center gap-2 text-white/70 text-sm font-medium">
+                  <Trophy className="w-4 h-4 text-yellow-500" />
+                  Time Slots
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, slots: [...formData.slots, { startHour: "12", startMin: "00", startAmPm: "PM", endHour: "01", endMin: "00", endAmPm: "PM", capacity: 6 }] })}
+                  className="text-xs flex items-center gap-1 bg-white/5 hover:bg-white/10 py-1.5 px-3 rounded-lg transition-colors text-white"
+                >
+                  <Plus className="w-3 h-3" /> Add Slot
+                </button>
+              </div>
+              <div className="space-y-4">
+                {formData.slots.map((slot, idx) => (
+                  <div key={idx} className="flex flex-col md:flex-row items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                    {/* Time Selectors */}
+                    <div className="flex items-center gap-2 flex-wrap flex-1">
+                      {/* Start Time */}
+                      <div className="flex items-center gap-1 bg-black rounded-lg px-2 py-1 border border-white/10">
+                        <select 
+                          value={slot.startHour}
+                          onChange={(e) => { const s = [...formData.slots]; s[idx].startHour = e.target.value; setFormData({...formData, slots: s}); }}
+                          className="bg-transparent text-white focus:outline-none appearance-none cursor-pointer"
+                        >
+                          {HOURS.map(h => <option className="bg-[#111] text-white" key={h} value={h}>{h}</option>)}
+                        </select>
+                        <span className="text-white/50">:</span>
+                        <select 
+                          value={slot.startMin}
+                          onChange={(e) => { const s = [...formData.slots]; s[idx].startMin = e.target.value; setFormData({...formData, slots: s}); }}
+                          className="bg-transparent text-white focus:outline-none appearance-none cursor-pointer"
+                        >
+                          {MINS.map(m => <option className="bg-[#111] text-white" key={m} value={m}>{m}</option>)}
+                        </select>
+                        <select 
+                          value={slot.startAmPm}
+                          onChange={(e) => { const s = [...formData.slots]; s[idx].startAmPm = e.target.value; setFormData({...formData, slots: s}); }}
+                          className="bg-transparent text-pubg-yellow font-bold focus:outline-none appearance-none cursor-pointer ml-1"
+                        >
+                          {AMPM.map(a => <option className="bg-[#111] text-white" key={a} value={a}>{a}</option>)}
+                        </select>
+                      </div>
+                      
+                      <span className="text-white/40 text-sm font-medium">to</span>
+
+                      {/* End Time */}
+                      <div className="flex items-center gap-1 bg-black rounded-lg px-2 py-1 border border-white/10">
+                        <select 
+                          value={slot.endHour}
+                          onChange={(e) => { const s = [...formData.slots]; s[idx].endHour = e.target.value; setFormData({...formData, slots: s}); }}
+                          className="bg-transparent text-white focus:outline-none appearance-none cursor-pointer"
+                        >
+                          {HOURS.map(h => <option className="bg-[#111] text-white" key={h} value={h}>{h}</option>)}
+                        </select>
+                        <span className="text-white/50">:</span>
+                        <select 
+                          value={slot.endMin}
+                          onChange={(e) => { const s = [...formData.slots]; s[idx].endMin = e.target.value; setFormData({...formData, slots: s}); }}
+                          className="bg-transparent text-white focus:outline-none appearance-none cursor-pointer"
+                        >
+                          {MINS.map(m => <option className="bg-[#111] text-white" key={m} value={m}>{m}</option>)}
+                        </select>
+                        <select 
+                          value={slot.endAmPm}
+                          onChange={(e) => { const s = [...formData.slots]; s[idx].endAmPm = e.target.value; setFormData({...formData, slots: s}); }}
+                          className="bg-transparent text-pubg-yellow font-bold focus:outline-none appearance-none cursor-pointer ml-1"
+                        >
+                          {AMPM.map(a => <option className="bg-[#111] text-white" key={a} value={a}>{a}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Capacity Input */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-white/50 text-sm whitespace-nowrap">Teams:</span>
+                      <input 
+                        type="number"
+                        required
+                        min="1"
+                        value={slot.capacity}
+                        onChange={(e) => {
+                          const newSlots = [...formData.slots];
+                          newSlots[idx].capacity = parseInt(e.target.value) || 1;
+                          setFormData({ ...formData, slots: newSlots });
+                        }}
+                        className="w-16 bg-black border border-white/10 rounded-lg py-1.5 px-3 text-white focus:outline-none focus:border-yellow-500/50 transition-colors text-center"
+                        title="Max teams for this slot"
+                      />
+                    </div>
+
+                    {formData.slots.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newSlots = formData.slots.filter((_, i) => i !== idx);
+                          setFormData({ ...formData, slots: newSlots });
+                        }}
+                        className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors shrink-0"
+                        title="Remove Slot"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
 
           </div>

@@ -22,6 +22,7 @@ export default function UpcomingTournamentAdmin() {
     match_mode: "Squad",
     map_area: "TDM",
     custom_map_area: "",
+    prize: "TBA",
     slots: [
       { startHour: "10", startMin: "00", startAmPm: "AM", endHour: "11", endMin: "00", endAmPm: "AM", capacity: 6 }
     ]
@@ -50,6 +51,7 @@ export default function UpcomingTournamentAdmin() {
         bg_image_url: data.bg_image_url || "",
         tournament_date: data.tournament_date || "",
         match_mode: data.match_mode || "Squad",
+        prize: data.prize || "TBA",
         map_area: (data.map_area && PREDEFINED_MAPS.includes(data.map_area)) ? data.map_area : (data.map_area ? 'Custom' : 'TDM'),
         custom_map_area: (data.map_area && !PREDEFINED_MAPS.includes(data.map_area)) ? data.map_area : "",
         slots: Array.isArray(data.slots) && data.slots.length > 0
@@ -85,6 +87,7 @@ export default function UpcomingTournamentAdmin() {
             bg_image_url: formData.bg_image_url,
             tournament_date: formData.tournament_date,
             match_mode: formData.match_mode,
+            prize: formData.prize,
             map_area: formData.map_area === 'Custom' ? formData.custom_map_area : formData.map_area,
             slots: formData.slots,
             updated_at: new Date().toISOString()
@@ -95,7 +98,16 @@ export default function UpcomingTournamentAdmin() {
       } else {
         const { data, error } = await supabase
           .from('upcoming_tournaments')
-          .insert([formData])
+          .insert([{
+            headline: formData.headline,
+            match_name: formData.match_name,
+            bg_image_url: formData.bg_image_url,
+            tournament_date: formData.tournament_date,
+            match_mode: formData.match_mode,
+            prize: formData.prize,
+            map_area: formData.map_area === 'Custom' ? formData.custom_map_area : formData.map_area,
+            slots: formData.slots
+          }])
           .select()
           .single();
           
@@ -181,8 +193,8 @@ export default function UpcomingTournamentAdmin() {
               />
             </div>
 
-            {/* Date, Mode, and Map Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Date, Mode, Map, and Prize Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="flex items-center gap-2 text-white/70 text-sm font-medium mb-2">
                   <Type className="w-4 h-4 text-yellow-500" />
@@ -241,6 +253,21 @@ export default function UpcomingTournamentAdmin() {
                     className="w-full bg-black border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-yellow-500/50 transition-colors mt-3"
                   />
                 )}
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-white/70 text-sm font-medium mb-2">
+                  <Trophy className="w-4 h-4 text-yellow-500" />
+                  Prize
+                </label>
+                <input 
+                  type="text"
+                  required
+                  value={formData.prize}
+                  onChange={(e) => setFormData({ ...formData, prize: e.target.value })}
+                  className="w-full bg-black border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-yellow-500/50 transition-colors"
+                  placeholder="e.g. 10,000 INR"
+                />
               </div>
             </div>
             {/* Dynamic Slots */}

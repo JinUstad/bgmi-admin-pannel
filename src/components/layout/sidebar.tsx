@@ -16,7 +16,6 @@ export function Sidebar({ isOpen = true, setIsOpen }: { isOpen?: boolean, setIsO
     { name: 'Payments', href: '/dashboard/payments', icon: CreditCard },
     { name: 'Matches', href: '/dashboard/matches', icon: Gamepad2 },
     { name: 'Upcoming', href: '/dashboard/upcoming-tournament', icon: Trophy },
-    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     { name: 'Live Streaming', href: '/dashboard/live-stream', icon: Trophy },
   ];
 

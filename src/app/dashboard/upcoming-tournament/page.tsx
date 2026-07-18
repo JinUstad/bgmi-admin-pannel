@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Save, Image as ImageIcon, Type, Trophy, Plus, X } from "lucide-react";
+import { Loader2, Save, Image as ImageIcon, Type, Trophy, Plus, X, IndianRupee } from "lucide-react";
+import { updateSettingsAction } from '../settings/actions';
 
 const HOURS = Array.from({length: 12}, (_, i) => (i + 1).toString().padStart(2, '0'));
 const MINS = ['00', '15', '30', '45'];
@@ -29,6 +30,10 @@ export default function UpcomingTournamentAdmin() {
   });
 
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const [fee, setFee] = useState<string>('');
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -69,7 +74,45 @@ export default function UpcomingTournamentAdmin() {
             ]
       });
     }
+
+    const { data: settingsData } = await supabase
+      .from('settings')
+      .select('registration_fee')
+      .eq('id', 1)
+      .single();
+
+    if (settingsData) {
+      setFee(settingsData.registration_fee.toString());
+    }
+
     setLoading(false);
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    setSettingsMessage(null);
+
+    const numericFee = parseFloat(fee);
+    if (isNaN(numericFee) || numericFee < 0) {
+      setSettingsMessage({ type: 'error', text: 'Please enter a valid positive number.' });
+      setSavingSettings(false);
+      return;
+    }
+
+    const result = await updateSettingsAction(numericFee);
+
+    if (result.error) {
+      console.error('Error saving settings:', result.error);
+      setSettingsMessage({ type: 'error', text: `Failed to save settings: ${result.error}` });
+    } else {
+      setSettingsMessage({ type: 'success', text: 'Pricing saved successfully!' });
+    }
+    setSavingSettings(false);
+
+    setTimeout(() => {
+      setSettingsMessage((prev) => prev?.type === 'success' ? null : prev);
+    }, 3000);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -141,8 +184,54 @@ export default function UpcomingTournamentAdmin() {
         </div>
       </div>
 
-      <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
-        <form onSubmit={handleSave} className="space-y-6">
+      {/* Tournament Pricing Settings */}
+      <div className="bg-[#111] border border-white/10 rounded-2xl p-6 shadow-xl">
+        <h2 className="text-xl font-bold text-white mb-6 uppercase tracking-widest border-b border-white/10 pb-4">
+          Tournament Pricing
+        </h2>
+        <form onSubmit={handleSaveSettings} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-white/70 text-sm font-bold uppercase tracking-widest">
+              Registration Fee (₹)
+            </label>
+            <div className="relative max-w-sm">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <IndianRupee className="w-5 h-5 text-white/40" />
+              </div>
+              <input
+                type="number"
+                required
+                min="0"
+                step="1"
+                value={fee}
+                onChange={(e) => setFee(e.target.value)}
+                className="w-full bg-black border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-yellow-500 transition-colors text-lg font-bold"
+                placeholder="e.g. 220"
+              />
+            </div>
+            <p className="text-white/40 text-xs mt-2">
+              This amount will be displayed and charged when users register for a tournament.
+            </p>
+          </div>
+
+          {settingsMessage && (
+            <div className={`p-4 rounded-xl text-sm font-bold max-w-sm ${settingsMessage.type === 'success' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+              {settingsMessage.text}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={savingSettings}
+            className="flex items-center justify-center gap-2 max-w-sm w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase tracking-widest py-3 px-8 rounded-xl transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {savingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            <span>{savingSettings ? 'Saving...' : 'Save Pricing'}</span>
+          </button>
+        </form>
+      </div>
+
+      <form onSubmit={handleSave} className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-xl space-y-6">
           <div className="space-y-4">
             
             {/* Headline */}
@@ -418,7 +507,6 @@ export default function UpcomingTournamentAdmin() {
             </button>
           </div>
         </form>
-      </div>
     </div>
   );
 }

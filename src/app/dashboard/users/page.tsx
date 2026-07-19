@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
-import { Users, Search, Loader2, Eye, X, Calendar, Gamepad2, CreditCard, Trash2, Filter, Plus } from 'lucide-react';
+import { Users, Search, Loader2, Eye, X, Calendar, Gamepad2, CreditCard, Trash2, Filter, Plus, Pencil } from 'lucide-react';
 
 // Time slots will be fetched dynamically from upcoming_tournaments
 
@@ -40,6 +40,20 @@ export default function UsersPage() {
     tournament_type: 'squad',
     time_slot: '',
     upi_id: 'CASH',
+  });
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    full_name: '',
+    bgmi_id: '',
+    team_name: '',
+    mobile_number: '',
+    email: '',
+    tournament_type: 'squad',
+    time_slot: '',
+    upi_id: 'CASH',
+    payment_status: 'verified',
   });
 
   const [timeSlots, setTimeSlots] = useState<{ value: string, label: string }[]>([{ value: '', label: 'All Slots' }]);
@@ -138,6 +152,41 @@ export default function UsersPage() {
       setFormData({
         full_name: '', bgmi_id: '', team_name: '', mobile_number: '', email: '', tournament_type: 'squad', time_slot: '', upi_id: 'CASH',
       });
+    }
+    setIsSubmitting(false);
+  };
+
+  const openEditModal = (user: Registration) => {
+    setEditingUserId(user.id);
+    setEditFormData({
+      full_name: user.full_name || '',
+      bgmi_id: user.bgmi_id || '',
+      team_name: user.team_name || '',
+      mobile_number: user.mobile_number || '',
+      email: user.email || '',
+      tournament_type: user.tournament_type || 'squad',
+      time_slot: user.time_slot || '',
+      upi_id: user.upi_id || 'CASH',
+      payment_status: user.payment_status || 'verified',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUserId) return;
+    setIsSubmitting(true);
+    
+    const { error } = await supabase
+      .from('registrations')
+      .update(editFormData)
+      .eq('id', editingUserId);
+
+    if (error) {
+      alert('Failed to update user: ' + error.message);
+    } else {
+      setUsers(users.map(u => (u.id === editingUserId ? { ...u, ...editFormData } : u)));
+      setIsEditModalOpen(false);
     }
     setIsSubmitting(false);
   };
@@ -282,6 +331,13 @@ export default function UsersPage() {
                           className="p-2 rounded bg-white/5 hover:bg-white/10 border border-white/10 hover:border-yellow-500/50 text-white hover:text-yellow-500 transition-colors inline-flex"
                         >
                           <Eye className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => openEditModal(user)}
+                          title="Edit Registration"
+                          className="p-2 rounded bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/50 text-white hover:text-blue-500 transition-colors inline-flex"
+                        >
+                          <Pencil className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleDeleteUser(user.id)}
@@ -455,6 +511,90 @@ export default function UsersPage() {
               >
                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
                 {isSubmitting ? 'Adding...' : 'Add Player (Paid in Cash)'}
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+          >
+            <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/5">
+              <h3 className="text-xl font-black text-white uppercase tracking-wider flex items-center gap-3">
+                <Pencil className="w-6 h-6 text-blue-500" />
+                Edit Registration
+              </h3>
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-2 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditSubmit} className="p-6 overflow-y-auto space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Full Name *</label>
+                  <input required type="text" value={editFormData.full_name} onChange={e => setEditFormData({...editFormData, full_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">BGMI ID *</label>
+                  <input required type="text" value={editFormData.bgmi_id} onChange={e => setEditFormData({...editFormData, bgmi_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Team Name</label>
+                  <input type="text" value={editFormData.team_name} onChange={e => setEditFormData({...editFormData, team_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Mobile Number *</label>
+                  <input required type="text" value={editFormData.mobile_number} onChange={e => setEditFormData({...editFormData, mobile_number: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Email Address</label>
+                  <input type="email" value={editFormData.email} onChange={e => setEditFormData({...editFormData, email: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Tournament Type *</label>
+                  <select required value={editFormData.tournament_type} onChange={e => setEditFormData({...editFormData, tournament_type: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 appearance-none">
+                    <option value="squad">Squad Team Only</option>
+                    <option value="solo">Solo Match</option>
+                    <option value="duo">Duo/Dual Match</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">UPI ID / Note</label>
+                  <input required type="text" value={editFormData.upi_id} onChange={e => setEditFormData({...editFormData, upi_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Payment Status *</label>
+                  <select required value={editFormData.payment_status} onChange={e => setEditFormData({...editFormData, payment_status: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 appearance-none">
+                    <option value="verified">Verified (Paid)</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Time Slot *</label>
+                  <select required value={editFormData.time_slot} onChange={e => setEditFormData({...editFormData, time_slot: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 appearance-none">
+                    <option value="">Select Slot</option>
+                    {timeSlots.filter(s => s.value).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-black uppercase tracking-widest py-4 rounded-xl transition-colors mt-4 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Pencil className="w-5 h-5" />}
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
               </button>
             </form>
           </motion.div>

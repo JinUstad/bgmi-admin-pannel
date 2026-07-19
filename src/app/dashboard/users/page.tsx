@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
-import { Users, Search, Loader2, Eye, X, Calendar, Gamepad2, CreditCard, Trash2, Filter } from 'lucide-react';
+import { Users, Search, Loader2, Eye, X, Calendar, Gamepad2, CreditCard, Trash2, Filter, Plus } from 'lucide-react';
 
 const TIME_SLOTS = [
   { value: '', label: 'All Slots' },
@@ -38,6 +38,17 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState<Registration | null>(null);
   const [slotFilter, setSlotFilter] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: '',
+    bgmi_id: '',
+    team_name: '',
+    mobile_number: '',
+    email: '',
+    tournament_type: 'squad',
+    time_slot: '',
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -83,6 +94,36 @@ export default function UsersPage() {
     }
   };
 
+  const handleManualAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.full_name || !formData.bgmi_id || !formData.time_slot) {
+      alert("Please fill in the required fields (Name, BGMI ID, Time Slot).");
+      return;
+    }
+    setIsSubmitting(true);
+    
+    const { data, error } = await supabase
+      .from('registrations')
+      .insert([{
+        ...formData,
+        payment_amount: 50, // default fee
+        payment_status: 'verified',
+        cashfree_order_id: 'CASH_PAYMENT_' + Math.random().toString(36).substring(7).toUpperCase()
+      }])
+      .select();
+
+    if (error) {
+      alert('Failed to add user: ' + error.message);
+    } else if (data) {
+      setUsers([data[0], ...users]);
+      setIsAddModalOpen(false);
+      setFormData({
+        full_name: '', bgmi_id: '', team_name: '', mobile_number: '', email: '', tournament_type: 'squad', time_slot: '',
+      });
+    }
+    setIsSubmitting(false);
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
       user.full_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -106,7 +147,14 @@ export default function UsersPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 uppercase tracking-widest"
+          >
+            <Plus className="w-4 h-4" /> Add User
+          </button>
+          
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Filter className="w-4 h-4 text-white/40" />
@@ -310,6 +358,67 @@ export default function UsersPage() {
                 </div>
               )}
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Manual Add Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+          >
+            <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/5">
+              <h3 className="text-xl font-black text-white uppercase tracking-wider flex items-center gap-3">
+                <Plus className="w-6 h-6 text-yellow-500" />
+                Add User Manually
+              </h3>
+              <button 
+                onClick={() => setIsAddModalOpen(false)}
+                className="p-2 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleManualAdd} className="p-6 overflow-y-auto space-y-4">
+              <div>
+                <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Full Name *</label>
+                <input required type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">BGMI ID *</label>
+                <input required type="text" value={formData.bgmi_id} onChange={e => setFormData({...formData, bgmi_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Team Name</label>
+                <input type="text" value={formData.team_name} onChange={e => setFormData({...formData, team_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Mobile</label>
+                  <input type="text" value={formData.mobile_number} onChange={e => setFormData({...formData, mobile_number: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Time Slot *</label>
+                  <select required value={formData.time_slot} onChange={e => setFormData({...formData, time_slot: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50">
+                    <option value="">Select Slot</option>
+                    {TIME_SLOTS.filter(s => s.value).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-black uppercase tracking-widest py-4 rounded-xl transition-colors mt-4 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+                {isSubmitting ? 'Adding...' : 'Add Player (Paid in Cash)'}
+              </button>
+            </form>
           </motion.div>
         </div>
       )}

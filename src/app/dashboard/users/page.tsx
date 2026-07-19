@@ -68,6 +68,21 @@ export default function UsersPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!slotFilter) return;
+    if (!confirm(`Are you sure you want to delete ALL users for slot "${slotFilter}"? This cannot be undone.`)) return;
+    
+    setLoading(true);
+    const { error } = await supabase.from('registrations').delete().eq('time_slot', slotFilter);
+    if (error) {
+      alert('Failed to bulk delete: ' + error.message);
+      setLoading(false);
+    } else {
+      setUsers(users.filter(u => u.time_slot !== slotFilter));
+      setLoading(false);
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
       user.full_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -106,6 +121,17 @@ export default function UsersPage() {
               ))}
             </select>
           </div>
+          
+          {slotFilter && (
+            <button 
+              onClick={handleBulkDelete}
+              className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors flex items-center gap-2"
+              title="Delete all users in this slot"
+            >
+              <Trash2 className="w-4 h-4" /> Delete All
+            </button>
+          )}
+
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="w-5 h-5 text-white/40" />

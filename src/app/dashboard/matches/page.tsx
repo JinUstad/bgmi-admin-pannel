@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gamepad2, Users, CheckCircle2, Clock, PlayCircle, Loader2, Save, Key, Edit2, Trash2 } from 'lucide-react';
+import { Gamepad2, Users, CheckCircle2, Clock, PlayCircle, Loader2, Save, Key, Edit2, Trash2, MessageSquare, Send, CalendarIcon } from 'lucide-react';
 
 export default function MatchesPage() {
   const [timeSlots, setTimeSlots] = useState<{ value: string, label: string, capacity: number }[]>([]);
@@ -13,6 +13,10 @@ export default function MatchesPage() {
 
   const [editRoomId, setEditRoomId] = useState<string | null>(null);
   const [roomData, setRoomData] = useState({ id: '', password: '' });
+  
+  const [chatMessage, setChatMessage] = useState<{ [key: string]: string }>({});
+  const [scheduleDate, setScheduleDate] = useState<{ [key: string]: string }>({});
+  const [chats, setChats] = useState<{ [key: string]: any[] }>({});
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -54,8 +58,34 @@ export default function MatchesPage() {
     const { data: matchData } = await supabase
       .from('matches')
       .select('*');
-
-    setMatches(matchData || []);
+      
+    // Lazy Delete check
+    if (matchData) {
+      const now = new Date();
+      const validMatches = [];
+      for (const m of matchData) {
+        if (m.scheduled_delete_at && new Date(m.scheduled_delete_at) <= now) {
+          await supabase.from('matches').delete().eq('id', m.id);
+          // Assuming cascade delete takes care of match_chats. We should also delete registrations if needed,
+          // but usually keeping them might be good, or delete if requested.
+          console.log(`Auto-deleted match ${m.id}`);
+        } else {
+          validMatches.push(m);
+          
+          // Fetch chats for valid match
+          const { data: matchChats } = await supabase
+            .from('match_chats')
+            .select('*')
+            .eq('match_id', m.id)
+            .order('created_at', { ascending: false });
+          
+          setChats(prev => ({ ...prev, [m.id]: matchChats || [] }));
+        }
+      }
+      setMatches(validMatches);
+    } else {
+      setMatches([]);
+    }
     setLoading(false);
   };
 
@@ -99,6 +129,44 @@ export default function MatchesPage() {
     const { error } = await supabase.from('matches').delete().eq('id', id);
     if (error) alert('Failed to delete match: ' + error.message);
     else fetchAllData();
+  };
+
+  const sendChatMessage = async (matchId: string) => {
+    const msg = chatMessage[matchId];
+    if (!msg && !roomData.id && !roomData.password) return;
+
+    const { error } = await supabase.from('match_chats').insert([{
+      match_id: matchId,
+      message: msg || '',
+      room_id: roomData.id || '',
+      room_password: roomData.password || ''
+    }]);
+
+    if (error) {
+      alert('Failed to send announcement: ' + error.message);
+    } else {
+      setChatMessage(prev => ({ ...prev, [matchId]: '' }));
+      setEditRoomId(null);
+      setRoomData({ id: '', password: '' });
+      fetchAllData();
+    }
+  };
+
+  const saveSchedule = async (matchId: string) => {
+    const date = scheduleDate[matchId];
+    if (!date) return;
+    
+    const { error } = await supabase
+      .from('matches')
+      .update({ scheduled_delete_at: date })
+      .eq('id', matchId);
+      
+    if (error) {
+      alert('Failed to schedule deletion: ' + error.message);
+    } else {
+      alert('Deletion scheduled successfully');
+      fetchAllData();
+    }
   };
 
   // Stats calculation
@@ -236,26 +304,43 @@ export default function MatchesPage() {
 
                         {editRoomId === match.id ? (
                           <div className="space-y-3">
-                            <input
-                              type="text"
-                              placeholder="Room ID"
-                              value={roomData.id}
-                              onChange={(e) => setRoomData({ ...roomData, id: e.target.value })}
-                              className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500 text-sm"
-                            />
-                            <input
-                              type="text"
-                              placeholder="Room Password"
-                              value={roomData.password}
-                              onChange={(e) => setRoomData({ ...roomData, password: e.target.value })}
-                              className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500 text-sm"
+                            <textarea
+                              placeholder="Announcement Message (Optional)"
+                              value={chatMessage[match.id] || ''}
+                              onChange={(e) => setChatMessage(prev => ({ ...prev, [match.id]: e.target.value }))}
+                              className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500 text-sm resize-none"
+                              rows={2}
                             />
                             <div className="flex gap-2">
+                              <input
+                                type="text"
+                                placeholder="Room ID"
+                                value={roomData.id}
+                                onChange={(e) => setRoomData({ ...roomData, id: e.target.value })}
+                                className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500 text-sm"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Room Password"
+                                value={roomData.password}
+                                onChange={(e) => setRoomData({ ...roomData, password: e.target.value })}
+                                className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500 text-sm"
+                              />
+                            </div>
+                            <div className="flex gap-2">
                               <button
-                                onClick={() => saveRoomDetails(match.id)}
+                                onClick={() => sendChatMessage(match.id)}
                                 className="flex-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg py-2 text-sm font-bold transition-colors flex items-center justify-center gap-2"
                               >
-                                <Save className="w-4 h-4" /> Save
+                                <Send className="w-4 h-4" /> Send to Group Chat
+                              </button>
+                              <button
+                                onClick={() => {
+                                  saveRoomDetails(match.id);
+                                }}
+                                className="px-4 border border-purple-500/50 hover:bg-purple-500/10 text-purple-400 rounded-lg py-2 text-sm font-bold transition-colors"
+                              >
+                                Save Only
                               </button>
                               <button
                                 onClick={() => setEditRoomId(null)}
@@ -268,14 +353,66 @@ export default function MatchesPage() {
                         ) : (
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Room ID</p>
+                              <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Current Room ID</p>
                               <p className="text-white font-mono">{match.room_id || 'Not set'}</p>
                             </div>
                             <div>
-                              <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Password</p>
+                              <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Current Password</p>
                               <p className="text-white font-mono">{match.room_password || 'Not set'}</p>
                             </div>
                           </div>
+                        )}
+                        
+                        {/* Match Chat History */}
+                        {chats[match.id] && chats[match.id].length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-white/10">
+                            <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
+                              <MessageSquare className="w-3 h-3" /> Recent Announcements
+                            </p>
+                            <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                              {chats[match.id].map(chat => (
+                                <div key={chat.id} className="bg-black/50 p-2 rounded-lg text-xs">
+                                  <div className="flex justify-between items-start text-white/40 mb-1 text-[10px]">
+                                    <span>Sent by Admin</span>
+                                    <span>{new Date(chat.created_at).toLocaleString()}</span>
+                                  </div>
+                                  {chat.message && <div className="text-white/80 mb-1">{chat.message}</div>}
+                                  {(chat.room_id || chat.room_password) && (
+                                    <div className="flex gap-3 text-white">
+                                      {chat.room_id && <span>ID: <span className="font-mono text-purple-400">{chat.room_id}</span></span>}
+                                      {chat.room_password && <span>Pass: <span className="font-mono text-purple-400">{chat.room_password}</span></span>}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Auto-Delete Scheduler */}
+                      <div className="bg-red-500/5 rounded-xl p-4 border border-red-500/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-red-400/80 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                            <CalendarIcon className="w-4 h-4" /> Schedule Deletion
+                          </h4>
+                        </div>
+                        <div className="flex gap-2 items-center">
+                          <input 
+                            type="datetime-local" 
+                            className="bg-black border border-white/10 rounded-lg px-3 py-1.5 text-white focus:outline-none focus:border-red-500 text-sm flex-1"
+                            value={scheduleDate[match.id] || (match.scheduled_delete_at ? new Date(match.scheduled_delete_at).toISOString().slice(0,16) : '')}
+                            onChange={(e) => setScheduleDate(prev => ({ ...prev, [match.id]: e.target.value }))}
+                          />
+                          <button 
+                            onClick={() => saveSchedule(match.id)}
+                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"
+                          >
+                            Set
+                          </button>
+                        </div>
+                        {match.scheduled_delete_at && (
+                          <p className="text-red-400/60 text-[10px] mt-2">Will auto-delete on: {new Date(match.scheduled_delete_at).toLocaleString()}</p>
                         )}
                       </div>
 

@@ -5,16 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 import { Users, Search, Loader2, Eye, X, Calendar, Gamepad2, CreditCard, Trash2, Filter, Plus } from 'lucide-react';
 
-const TIME_SLOTS = [
-  { value: '', label: 'All Slots' },
-  { value: '9-10am', label: '9:00 AM - 10:00 AM' },
-  { value: '10-11am', label: '10:00 AM - 11:00 AM' },
-  { value: '11-12pm', label: '11:00 AM - 12:00 PM' },
-  { value: '12-1pm', label: '12:00 PM - 1:00 PM' },
-  { value: '2-3pm', label: '2:00 PM - 3:00 PM' },
-  { value: '3-4pm', label: '3:00 PM - 4:00 PM' },
-  { value: '4-5pm', label: '4:00 PM - 5:00 PM' },
-];
+// Time slots will be fetched dynamically from upcoming_tournaments
 
 type Registration = {
   id: string;
@@ -50,9 +41,35 @@ export default function UsersPage() {
     time_slot: '',
   });
 
+  const [timeSlots, setTimeSlots] = useState<{ value: string, label: string }[]>([{ value: '', label: 'All Slots' }]);
+
   useEffect(() => {
+    fetchTimeSlots();
     fetchUsers();
   }, []);
+
+  const fetchTimeSlots = async () => {
+    const { data: tourData } = await supabase
+      .from('upcoming_tournaments')
+      .select('slots')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (tourData && tourData.slots && tourData.slots.length > 0) {
+      const dynamicSlots = tourData.slots.map((s: any) => {
+        if (typeof s === 'string') {
+          return { value: s, label: s };
+        }
+        let timeStr = s.time;
+        if (s.startHour) {
+          timeStr = `${s.startHour}:${s.startMin} ${s.startAmPm} - ${s.endHour}:${s.endMin} ${s.endAmPm}`;
+        }
+        return { value: timeStr, label: timeStr };
+      });
+      setTimeSlots([{ value: '', label: 'All Slots' }, ...dynamicSlots]);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -164,7 +181,7 @@ export default function UsersPage() {
               onChange={(e) => setSlotFilter(e.target.value)}
               className="bg-[#111] border border-white/10 rounded-xl py-2.5 pl-9 pr-8 text-white focus:outline-none focus:border-yellow-500/50 transition-colors text-sm appearance-none cursor-pointer"
             >
-              {TIME_SLOTS.map(slot => (
+              {timeSlots.map(slot => (
                 <option key={slot.value} value={slot.value}>{slot.label}</option>
               ))}
             </select>
@@ -405,7 +422,7 @@ export default function UsersPage() {
                   <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Time Slot *</label>
                   <select required value={formData.time_slot} onChange={e => setFormData({...formData, time_slot: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50">
                     <option value="">Select Slot</option>
-                    {TIME_SLOTS.filter(s => s.value).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    {timeSlots.filter(s => s.value).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
               </div>

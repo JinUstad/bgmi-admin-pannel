@@ -39,6 +39,7 @@ export default function UsersPage() {
     email: '',
     tournament_type: 'squad',
     time_slot: '',
+    upi_id: 'CASH',
   });
 
   const [timeSlots, setTimeSlots] = useState<{ value: string, label: string }[]>([{ value: '', label: 'All Slots' }]);
@@ -135,7 +136,7 @@ export default function UsersPage() {
       setUsers([data[0], ...users]);
       setIsAddModalOpen(false);
       setFormData({
-        full_name: '', bgmi_id: '', team_name: '', mobile_number: '', email: '', tournament_type: 'squad', time_slot: '',
+        full_name: '', bgmi_id: '', team_name: '', mobile_number: '', email: '', tournament_type: 'squad', time_slot: '', upi_id: 'CASH',
       });
     }
     setIsSubmitting(false);
@@ -385,7 +386,7 @@ export default function UsersPage() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+            className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
           >
             <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/5">
               <h3 className="text-xl font-black text-white uppercase tracking-wider flex items-center gap-3">
@@ -400,27 +401,47 @@ export default function UsersPage() {
               </button>
             </div>
             
-            <form onSubmit={handleManualAdd} className="p-6 overflow-y-auto space-y-4">
-              <div>
-                <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Full Name *</label>
-                <input required type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">BGMI ID *</label>
-                <input required type="text" value={formData.bgmi_id} onChange={e => setFormData({...formData, bgmi_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Team Name</label>
-                <input type="text" value={formData.team_name} onChange={e => setFormData({...formData, team_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleManualAdd} className="p-6 overflow-y-auto space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Mobile</label>
-                  <input type="text" value={formData.mobile_number} onChange={e => setFormData({...formData, mobile_number: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" />
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Full Name *</label>
+                  <input required type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" placeholder="John Doe" />
                 </div>
                 <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">BGMI ID *</label>
+                  <input required type="text" value={formData.bgmi_id} onChange={e => setFormData({...formData, bgmi_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" placeholder="e.g. 22222, 33333" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Team Name</label>
+                  <input type="text" value={formData.team_name} onChange={e => setFormData({...formData, team_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" placeholder="Team Soul" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Mobile Number *</label>
+                  <input required type="text" value={formData.mobile_number} onChange={e => setFormData({...formData, mobile_number: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" placeholder="+91" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Email Address (Optional)</label>
+                  <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" placeholder="john@example.com" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Tournament Type *</label>
+                  <select required value={formData.tournament_type} onChange={e => setFormData({...formData, tournament_type: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50 appearance-none">
+                    <option value="squad">Squad Team Only</option>
+                    <option value="solo">Solo Match</option>
+                    <option value="duo">Duo/Dual Match</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">UPI ID / Payment Note *</label>
+                  <input required type="text" value={formData.upi_id} onChange={e => setFormData({...formData, upi_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50" placeholder="e.g. CASH or upi@bank" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Registration Date *</label>
+                  <input type="text" value={new Date().toLocaleDateString('en-GB').replace(/\//g, '-')} readOnly className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed focus:outline-none" />
+                </div>
+                <div className="md:col-span-2">
                   <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Time Slot *</label>
-                  <select required value={formData.time_slot} onChange={e => setFormData({...formData, time_slot: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50">
+                  <select required value={formData.time_slot} onChange={e => setFormData({...formData, time_slot: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500/50 appearance-none">
                     <option value="">Select Slot</option>
                     {timeSlots.filter(s => s.value).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>

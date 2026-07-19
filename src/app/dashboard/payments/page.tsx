@@ -32,6 +32,7 @@ export default function PaymentsPage() {
     const { data, error } = await supabase
       .from('registrations')
       .select('id, created_at, full_name, bgmi_id, mobile_number, upi_id, cashfree_order_id, payment_status, payment_amount')
+      .eq('payment_status', 'verified')
       .order('created_at', { ascending: false });
 
     if (error) {

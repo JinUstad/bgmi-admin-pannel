@@ -91,6 +91,7 @@ export default function UsersPage() {
     const { data, error } = await supabase
       .from('registrations')
       .select('*')
+      .eq('payment_status', 'verified')
       .order('created_at', { ascending: false });
 
     if (error) {

@@ -50,6 +50,7 @@ export default function Dashboard() {
         const { data: recent } = await supabase
           .from('registrations')
           .select('full_name, team_name, time_slot, payment_status, created_at')
+          .eq('payment_status', 'verified')
           .order('created_at', { ascending: false })
           .limit(5);
 

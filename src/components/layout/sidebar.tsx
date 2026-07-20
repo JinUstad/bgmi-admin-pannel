@@ -15,6 +15,7 @@ export function Sidebar({ isOpen = true, setIsOpen }: { isOpen?: boolean, setIsO
     { name: 'Total Users', href: '/dashboard/users', icon: Users },
     { name: 'Payments', href: '/dashboard/payments', icon: CreditCard },
     { name: 'Matches', href: '/dashboard/matches', icon: Gamepad2 },
+    { name: 'Team Battles', href: '/dashboard/team-battles', icon: Gamepad2 },
     { name: 'Room ID Share', href: '/dashboard/room-id-share', icon: Users },
     { name: 'Upcoming', href: '/dashboard/upcoming-tournament', icon: Trophy },
     { name: 'Live Streaming', href: '/dashboard/live-stream', icon: Trophy },

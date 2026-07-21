@@ -174,6 +174,21 @@ export default function TeamBattlesPage() {
     if (hasLost) return false;
     return true;
   });
+  
+  availableTeams.sort((a, b) => {
+    const parseTime = (timeStr: string) => {
+      if (!timeStr) return 0;
+      const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return 0;
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const ampm = match[3].toUpperCase();
+      if (ampm === 'PM' && hours < 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + minutes;
+    };
+    return parseTime(a.time_slot || '') - parseTime(b.time_slot || '');
+  });
   const selectedTeam1 = registrations.find(r => r.id === newMatch.team1_id);
 
   const getEligibleTeam2 = () => {

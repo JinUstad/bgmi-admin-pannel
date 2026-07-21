@@ -164,8 +164,16 @@ export default function TeamBattlesPage() {
 
   const filteredMatches = selectedSlot ? matches.filter(m => m.time_slot === selectedSlot) : matches;
   
-  const assignedTeamIds = new Set(matches.flatMap(m => [m.team1_id, m.team2_id]));
-  const availableTeams = registrations.filter(r => !assignedTeamIds.has(r.id) && r.tournament_type !== 'solo');
+  const availableTeams = registrations.filter(r => {
+    if (r.tournament_type === 'solo') return false;
+    const teamMatches = matches.filter(m => m.team1_id === r.id || m.team2_id === r.id);
+    if (teamMatches.length === 0) return true;
+    const isPending = teamMatches.some(m => m.status === 'pending' || m.status === 'ongoing');
+    if (isPending) return false;
+    const hasLost = teamMatches.some(m => m.status === 'completed' && m.winner_id && m.winner_id !== r.id);
+    if (hasLost) return false;
+    return true;
+  });
   const selectedTeam1 = registrations.find(r => r.id === newMatch.team1_id);
 
   const getEligibleTeam2 = () => {

@@ -23,6 +23,13 @@ type TeamMatch = {
   team2_id: string;
   winner_id: string | null;
   status: string;
+  team1_name?: string;
+  team1_bgmi_id?: string;
+  team1_player_name?: string;
+  team2_name?: string;
+  team2_bgmi_id?: string;
+  team2_player_name?: string;
+  winner_team_name?: string;
   team1: Registration;
   team2: Registration;
 };
@@ -112,7 +119,11 @@ export default function TeamBattlesPage() {
     }
     
     const team1Data = registrations.find(r => r.id === newMatch.team1_id);
-    if (!team1Data) return;
+    const team2Data = registrations.find(r => r.id === newMatch.team2_id);
+    if (!team1Data || !team2Data) return;
+
+    const t1Name = team1Data.team_name || team1Data.full_name || 'Team 1';
+    const t2Name = team2Data.team_name || team2Data.full_name || 'Team 2';
 
     setIsCreating(true);
     const { data, error } = await supabase
@@ -122,6 +133,12 @@ export default function TeamBattlesPage() {
         time_slot: team1Data.time_slot,
         team1_id: newMatch.team1_id,
         team2_id: newMatch.team2_id,
+        team1_name: t1Name,
+        team1_bgmi_id: team1Data.bgmi_id || '',
+        team1_player_name: team1Data.full_name || '',
+        team2_name: t2Name,
+        team2_bgmi_id: team2Data.bgmi_id || '',
+        team2_player_name: team2Data.full_name || '',
         status: 'pending'
       }])
       .select(`
@@ -150,15 +167,29 @@ export default function TeamBattlesPage() {
   const handleSetWinner = async (matchId: string, winnerId: string) => {
     if (!confirm('Are you sure you want to declare this team as the winner? This will be visible on the main website.')) return;
     
+    const match = matches.find(m => m.id === matchId);
+    let winnerTeamName = null;
+    if (match) {
+      if (winnerId === match.team1_id) {
+        winnerTeamName = match.team1_name || match.team1?.team_name || match.team1?.full_name;
+      } else if (winnerId === match.team2_id) {
+        winnerTeamName = match.team2_name || match.team2?.team_name || match.team2?.full_name;
+      }
+    }
+
     const { error } = await supabase
       .from('team_matches')
-      .update({ winner_id: winnerId, status: 'completed' })
+      .update({ 
+        winner_id: winnerId, 
+        winner_team_name: winnerTeamName,
+        status: 'completed' 
+      })
       .eq('id', matchId);
 
     if (error) {
       alert('Failed to set winner: ' + error.message);
     } else {
-      setMatches(matches.map(m => m.id === matchId ? { ...m, winner_id: winnerId, status: 'completed' } : m));
+      setMatches(matches.map(m => m.id === matchId ? { ...m, winner_id: winnerId, winner_team_name: winnerTeamName, status: 'completed' } : m));
     }
   };
 

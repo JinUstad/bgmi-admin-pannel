@@ -24,6 +24,7 @@ export default function UpcomingTournamentAdmin() {
     map_area: "TDM",
     custom_map_area: "",
     prize: "TBA",
+    is_active: true,
     slots: [
       { startHour: "10", startMin: "00", startAmPm: "AM", endHour: "11", endMin: "00", endAmPm: "AM", capacity: 6 }
     ]
@@ -51,6 +52,7 @@ export default function UpcomingTournamentAdmin() {
     if (data) {
       setId(data.id);
       setFormData({
+        is_active: data.is_active !== false,
         headline: data.headline || "",
         match_name: data.match_name || "",
         bg_image_url: data.bg_image_url || "",
@@ -125,6 +127,7 @@ export default function UpcomingTournamentAdmin() {
         const { error } = await supabase
           .from('upcoming_tournaments')
           .update({
+            is_active: formData.is_active,
             headline: formData.headline,
             match_name: formData.match_name,
             bg_image_url: formData.bg_image_url,
@@ -142,6 +145,7 @@ export default function UpcomingTournamentAdmin() {
         const { data, error } = await supabase
           .from('upcoming_tournaments')
           .insert([{
+            is_active: formData.is_active,
             headline: formData.headline,
             match_name: formData.match_name,
             bg_image_url: formData.bg_image_url,
@@ -232,6 +236,50 @@ export default function UpcomingTournamentAdmin() {
       </div>
 
       <form onSubmit={handleSave} className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-xl space-y-6">
+          {/* Section Visibility Toggle Card */}
+          <div className={`p-5 rounded-2xl border transition-all ${
+            formData.is_active 
+              ? 'bg-gradient-to-r from-yellow-500/10 to-amber-500/5 border-yellow-500/30' 
+              : 'bg-gradient-to-r from-red-500/10 to-rose-500/5 border-red-500/30'
+          }`}>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold shadow-lg ${
+                  formData.is_active ? 'bg-yellow-500 text-black shadow-yellow-500/20' : 'bg-red-500 text-white shadow-red-500/20'
+                }`}>
+                  <Trophy className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-white font-black text-lg uppercase tracking-wide flex items-center gap-2">
+                    Tournament Section Status
+                    <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider ${
+                      formData.is_active 
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    }`}>
+                      {formData.is_active ? '● LIVE / ENABLED' : '○ DISABLED / HIDDEN'}
+                    </span>
+                  </h3>
+                  <p className="text-white/60 text-xs mt-0.5">
+                    {formData.is_active 
+                      ? 'Section is currently VISIBLE on the website homepage for players.' 
+                      : 'Section is currently HIDDEN from the website homepage (no active tournament).'}
+                  </p>
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                />
+                <div className="w-14 h-7 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-yellow-500"></div>
+              </label>
+            </div>
+          </div>
+
           <div className="space-y-4">
             
             {/* Headline */}

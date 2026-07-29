@@ -12,7 +12,6 @@ export default function Dashboard() {
     verifiedUsers: 0,
     totalRevenue: 0,
     pendingPayments: 0,
-    totalMatches: 0,
   });
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,11 +40,6 @@ export default function Dashboard() {
           });
         }
 
-        // Fetch matches count
-        const { count: matchesCount } = await supabase
-          .from('matches')
-          .select('*', { count: 'exact', head: true });
-
         // Fetch 5 most recent registrations
         const { data: recent } = await supabase
           .from('registrations')
@@ -59,7 +53,6 @@ export default function Dashboard() {
           verifiedUsers: verifiedCount,
           totalRevenue: totalRevenue,
           pendingPayments: pendingCount,
-          totalMatches: matchesCount || 0,
         });
         setRecentUsers(recent || []);
       } catch (error) {
@@ -121,15 +114,6 @@ export default function Dashboard() {
       iconColor: "text-yellow-500",
       borderColor: "border-yellow-500/20",
     },
-    {
-      title: "Total Matches",
-      value: stats.totalMatches.toLocaleString(),
-      icon: Gamepad2,
-      href: "/dashboard/matches",
-      color: "from-purple-500/20 to-fuchsia-500/10",
-      iconColor: "text-purple-500",
-      borderColor: "border-purple-500/20",
-    },
   ];
 
   const container = {
@@ -158,7 +142,7 @@ export default function Dashboard() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
       >
         {cards.map((card, index) => {
           const Icon = card.icon;

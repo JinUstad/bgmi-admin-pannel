@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
-import { CreditCard, Search, Loader2, CheckCircle2, Clock, Eye, X, User, Phone, Gamepad2, Trash2 } from 'lucide-react';
+import { CreditCard, Search, Loader2, CheckCircle2, Clock, Eye, X, User, Phone, Gamepad2, Trash2, Banknote } from 'lucide-react';
 
 type Registration = {
   id: string;
@@ -61,55 +61,83 @@ export default function PaymentsPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="max-w-6xl mx-auto space-y-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white uppercase tracking-wider flex items-center gap-3">
-            <CreditCard className="w-8 h-8 text-green-500" />
-            Payment Records
-          </h1>
-          <p className="text-white/50 text-sm mt-1">Track and verify tournament registration payments</p>
+          <motion.h1 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3 text-glow mb-1"
+          >
+            <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+              <Banknote className="w-5 h-5 text-purple-400" />
+            </div>
+            Payments
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="text-white/60 text-xs font-bold uppercase tracking-widest"
+          >
+            Manage and verify tournament fees
+          </motion.p>
         </div>
 
-        <div className="relative">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative group"
+        >
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="w-5 h-5 text-white/40" />
+            <Search className="w-4 h-4 text-white/40 group-focus-within:text-purple-500 transition-colors" />
           </div>
           <input 
             type="text" 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full md:w-80 bg-[#111] border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-green-500/50 transition-colors text-sm"
-            placeholder="Search by name, UPI ID, phone..."
+            className="w-full md:w-80 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 hover:border-white/20 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-2xl py-3 pl-11 pr-4 text-white transition-all text-sm shadow-inner placeholder:text-white/20 placeholder:uppercase placeholder:tracking-widest"
+            placeholder="Search by name, UPI ID..."
           />
-        </div>
+        </motion.div>
       </div>
 
-      <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="relative bg-[#0a0a0a]/80 border border-white/10 rounded-3xl overflow-hidden backdrop-blur-2xl shadow-2xl"
+      >
+        {/* Subtle top glow */}
+        <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-green-500/30 to-transparent" />
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-white/70">
-            <thead className="bg-white/5 text-xs uppercase tracking-widest text-white/90 border-b border-white/10">
+            <thead className="bg-white/[0.02] text-[10px] uppercase tracking-widest text-white/50 border-b border-white/5">
               <tr>
-                <th className="px-6 py-4 font-bold">Player Name</th>
-                <th className="px-6 py-4 font-bold">Order ID</th>
-                <th className="px-6 py-4 font-bold">Mobile Number</th>
-                <th className="px-6 py-4 font-bold">Amount</th>
-                <th className="px-6 py-4 font-bold">Status</th>
-                <th className="px-6 py-4 font-bold">Date</th>
-                <th className="px-6 py-4 font-bold text-right">Actions</th>
+                <th className="px-6 py-5 font-bold">Player Name</th>
+                <th className="px-6 py-5 font-bold">Order ID</th>
+                <th className="px-6 py-5 font-bold">Mobile Number</th>
+                <th className="px-6 py-5 font-bold">Amount</th>
+                <th className="px-6 py-5 font-bold">Status</th>
+                <th className="px-6 py-5 font-bold">Date</th>
+                <th className="px-6 py-5 font-bold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-white/5">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-green-500 mx-auto" />
+                  <td colSpan={7} className="px-6 py-20 text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto" />
                   </td>
                 </tr>
               ) : filteredPayments.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-white/40 font-bold uppercase tracking-widest">
-                    No payment records found
+                  <td colSpan={7} className="px-6 py-20 text-center">
+                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CreditCard className="w-8 h-8 text-white/20" />
+                    </div>
+                    <p className="text-white/40 font-bold uppercase tracking-widest text-sm">No payment records found</p>
                   </td>
                 </tr>
               ) : (
@@ -119,53 +147,55 @@ export default function PaymentsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                     key={payment.id} 
-                    className="border-b border-white/5 hover:bg-white/[0.02] transition-colors"
+                    className="hover:bg-white/[0.02] transition-colors group relative"
                   >
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-white text-base">{payment.full_name}</div>
-                      <div className="text-xs text-white/50">ID: {payment.bgmi_id}</div>
+                    <td className="px-6 py-5">
+                      <div className="font-bold text-white text-base group-hover:text-purple-500 transition-colors">{payment.full_name}</div>
+                      <div className="text-xs text-white/50 flex items-center gap-2 mt-1">ID: {payment.bgmi_id}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="font-mono text-xs text-green-400 bg-green-400/10 px-2 py-1 rounded inline-block">
+                    <td className="px-6 py-5">
+                      <div className="font-mono text-[10px] font-bold tracking-widest text-green-400 bg-purple-500/10 border border-purple-500/20 px-2 py-1 rounded-md inline-block">
                         {payment.cashfree_order_id || payment.upi_id}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-white">
+                    <td className="px-6 py-5 text-white font-medium">
                       {payment.mobile_number}
                     </td>
-                    <td className="px-6 py-4 text-white font-bold">
-                      ₹{payment.payment_amount || 0}
+                    <td className="px-6 py-5">
+                      <span className="text-white font-black text-lg drop-shadow-md">
+                        ₹{payment.payment_amount || 0}
+                      </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-5">
                       {payment.payment_status === 'verified' ? (
-                        <span className="flex items-center gap-1.5 text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider w-max">
+                        <span className="flex items-center gap-1.5 text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider w-max shadow-sm">
                           <CheckCircle2 className="w-3.5 h-3.5" /> Verified
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1.5 text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider w-max">
+                        <span className="flex items-center gap-1.5 text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider w-max shadow-sm">
                           <Clock className="w-3.5 h-3.5" /> Pending
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-xs text-white/50">
-                      {new Date(payment.created_at).toLocaleString()}
+                    <td className="px-6 py-5 text-[10px] font-medium text-white/50 uppercase tracking-wider">
+                      {new Date(payment.created_at).toLocaleString('en-IN')}
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-6 py-5 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={() => setSelectedPayment(payment)}
                           title="View Details"
-                          className="p-2 rounded bg-white/5 hover:bg-white/10 border border-white/10 hover:border-green-500/50 text-white hover:text-green-500 transition-colors inline-flex"
+                          className="p-2.5 rounded-xl bg-white/5 hover:bg-purple-500/10 border border-white/10 hover:border-purple-500/30 text-white hover:text-purple-500 transition-all shadow-sm hover:shadow-[0_0_15px_rgba(168,85,247,0.2)] hover:-translate-y-0.5"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button className="text-xs font-bold uppercase tracking-widest text-green-500 hover:text-green-400 border border-green-500/30 hover:border-green-400 hover:bg-green-500/10 px-3 py-1.5 rounded transition-all">
+                        <button className="text-xs font-bold uppercase tracking-widest text-purple-500 hover:text-green-400 border border-green-500/30 hover:border-green-400 hover:bg-green-500/10 px-3 py-2 rounded-xl transition-all shadow-sm">
                           Verify
                         </button>
                         <button 
                           onClick={() => handleDeletePayment(payment.id)}
                           title="Delete Record"
-                          className="p-2 rounded bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/50 text-white/60 hover:text-red-500 transition-colors inline-flex"
+                          className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-white/60 hover:text-red-500 transition-all shadow-sm hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] hover:-translate-y-0.5"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -177,7 +207,7 @@ export default function PaymentsPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
 
       {/* Details Modal */}
       {selectedPayment && (
@@ -189,7 +219,7 @@ export default function PaymentsPage() {
           >
             <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/5">
               <h3 className="text-xl font-black text-white uppercase tracking-wider flex items-center gap-3">
-                <CreditCard className="w-6 h-6 text-green-500" />
+                <CreditCard className="w-6 h-6 text-purple-500" />
                 Payment Details
               </h3>
               <button 
@@ -204,8 +234,8 @@ export default function PaymentsPage() {
               
               <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
                 <p className="text-white/40 text-xs font-bold uppercase tracking-widest mb-2">Total Paid Amount</p>
-                <p className="text-4xl font-black text-green-500">₹{selectedPayment.payment_amount || 0}</p>
-                <p className={`text-xs font-bold uppercase tracking-widest mt-2 ${selectedPayment.payment_status === 'verified' ? 'text-green-500' : 'text-yellow-500'}`}>
+                <p className="text-4xl font-black text-purple-500">₹{selectedPayment.payment_amount || 0}</p>
+                <p className={`text-xs font-bold uppercase tracking-widest mt-2 ${selectedPayment.payment_status === 'verified' ? 'text-purple-500' : 'text-yellow-500'}`}>
                   {selectedPayment.payment_status}
                 </p>
               </div>

@@ -7,11 +7,19 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-export async function updateSettingsAction(numericFee: number) {
+export async function updateSettingsAction(
+  numericFee: number,
+  tournamentCategoriesBgUrl: string | null = null
+) {
   try {
     const { error } = await supabaseAdmin
       .from('settings')
-      .upsert({ id: 1, registration_fee: numericFee, updated_at: new Date().toISOString() });
+      .upsert({ 
+        id: 1, 
+        registration_fee: numericFee,
+        tournament_categories_bg_url: tournamentCategoriesBgUrl,
+        updated_at: new Date().toISOString() 
+      });
 
     if (error) {
       return { error: error.message };

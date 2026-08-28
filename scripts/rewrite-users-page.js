@@ -1,16 +1,12 @@
-"use client";
+const fs = require('fs');
+const path = require('path');
+
+const content = `"use client";
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Search, Loader2, Eye, X, Calendar, Gamepad2, CreditCard, Trash2, Filter, Plus, Pencil, Settings, Clock } from 'lucide-react';
-
-interface Game {
-  id: string;
-  name: string;
-  category_id: string;
-  game_categories?: { name: string; slug: string };
-}
 
 type Registration = {
   id: string;
@@ -28,8 +24,6 @@ type Registration = {
   payment_status?: string;
   total_amount?: number;
   pending_amount?: number;
-  game_id?: string;
-  games?: { name: string; category_id: string };
 };
 
 type TimeSlot = {
@@ -58,8 +52,7 @@ export default function UsersPage() {
     time_slot: '',
     upi_id: 'CASH',
     total_amount: 0,
-    pending_amount: 0,
-    game_id: ''
+    pending_amount: 0
   });
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -75,28 +68,17 @@ export default function UsersPage() {
     upi_id: 'CASH',
     payment_status: 'verified',
     total_amount: 0,
-    pending_amount: 0,
-    game_id: ''
+    pending_amount: 0
   });
 
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
-  const [games, setGames] = useState<Game[]>([]);
   const [newSlotStart, setNewSlotStart] = useState('');
   const [newSlotEnd, setNewSlotEnd] = useState('');
 
   useEffect(() => {
     fetchTimeSlots();
     fetchUsers();
-    fetchGames();
   }, []);
-
-  const fetchGames = async () => {
-    const { data } = await supabase
-      .from('games')
-      .select('*, game_categories!games_category_id_fkey(name, slug)')
-      .order('name');
-    if (data) setGames(data);
-  };
 
   const fetchTimeSlots = async () => {
     const { data, error } = await supabase
@@ -113,8 +95,14 @@ export default function UsersPage() {
     e.preventDefault();
     if (!newSlotStart || !newSlotEnd) return;
     
-    // The dropdowns already format the time as "hh:mm A"
-    const formattedSlot = `${newSlotStart} - ${newSlotEnd}`;
+    const formatTime = (timeStr: string) => {
+      const [h, m] = timeStr.split(':');
+      const d = new Date();
+      d.setHours(parseInt(h, 10), parseInt(m, 10));
+      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    };
+    
+    const formattedSlot = \`\${formatTime(newSlotStart)} - \${formatTime(newSlotEnd)}\`;
     
     const { data, error } = await supabase
       .from('time_slots')
@@ -127,7 +115,6 @@ export default function UsersPage() {
       setTimeSlots([...timeSlots, data[0]]);
       setNewSlotStart('');
       setNewSlotEnd('');
-      setIsManageSlotsModalOpen(false);
     }
   };
 
@@ -145,12 +132,12 @@ export default function UsersPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from('registrations')
-      .select('*, games(name, category_id, game_categories!games_category_id_fkey(name, slug))')
+      .select('*')
       .eq('payment_status', 'verified')
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching users:', error.message, error.details, error.hint, error);
+      console.error('Error fetching users:', error);
     } else {
       setUsers(data || []);
     }
@@ -169,7 +156,7 @@ export default function UsersPage() {
 
   const handleBulkDelete = async () => {
     if (!slotFilter) return;
-    if (!confirm(`Are you sure you want to delete ALL users for slot "${slotFilter}"? This cannot be undone.`)) return;
+    if (!confirm(\`Are you sure you want to delete ALL users for slot "\${slotFilter}"? This cannot be undone.\`)) return;
     
     setLoading(true);
     const { error } = await supabase.from('registrations').delete().eq('time_slot', slotFilter);
@@ -194,6 +181,7 @@ export default function UsersPage() {
       .from('registrations')
       .insert([{
         ...formData,
+        payment_amount: formData.total_amount, // For backwards compatibility
         payment_status: 'verified',
         cashfree_order_id: 'CASH_PAYMENT_' + Math.random().toString(36).substring(7).toUpperCase()
       }])
@@ -205,7 +193,7 @@ export default function UsersPage() {
       setUsers([data[0], ...users]);
       setIsAddModalOpen(false);
       setFormData({
-        full_name: '', bgmi_id: '', team_name: '', mobile_number: '', email: '', tournament_type: 'squad', time_slot: '', upi_id: 'CASH', total_amount: 0, pending_amount: 0, game_id: ''
+        full_name: '', bgmi_id: '', team_name: '', mobile_number: '', email: '', tournament_type: 'squad', time_slot: '', upi_id: 'CASH', total_amount: 0, pending_amount: 0
       });
     }
     setIsSubmitting(false);
@@ -214,7 +202,6 @@ export default function UsersPage() {
   const openEditModal = (user: Registration) => {
     setEditingUserId(user.id);
     setEditFormData({
-      game_id: user.game_id || '',
       full_name: user.full_name || '',
       bgmi_id: user.bgmi_id || '',
       team_name: user.team_name || '',
@@ -279,7 +266,7 @@ export default function UsersPage() {
             transition={{ delay: 0.1 }}
             className="text-white/60 text-sm font-bold uppercase tracking-widest"
           >
-            {slotFilter ? `Showing ${filteredUsers.length} users for slot ${slotFilter}` : 'Manage team leaders and tournament registrations'}
+            {slotFilter ? \`Showing \${filteredUsers.length} users for slot \${slotFilter}\` : 'Manage team leaders and tournament registrations'}
           </motion.p>
         </div>
 
@@ -368,19 +355,20 @@ export default function UsersPage() {
                 <th className="px-6 py-5 font-bold">Team / ID</th>
                 <th className="px-6 py-5 font-bold">Contact</th>
                 <th className="px-6 py-5 font-bold">Slot</th>
+                <th className="px-6 py-5 font-bold">Reg. Date</th>
                 <th className="px-6 py-5 font-bold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center">
+                  <td colSpan={6} className="px-6 py-20 text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto" />
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center">
+                  <td colSpan={6} className="px-6 py-20 text-center">
                     <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Users className="w-8 h-8 text-white/20" />
                     </div>
@@ -426,6 +414,9 @@ export default function UsersPage() {
                       <span className="bg-[#111] border border-white/10 shadow-inner px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 group-hover:border-purple-500/30 transition-colors">
                         {user.time_slot || 'N/A'}
                       </span>
+                    </td>
+                    <td className="px-6 py-5 text-xs text-white/40 font-medium">
+                      {new Date(user.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-6 py-5 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
@@ -485,14 +476,6 @@ export default function UsersPage() {
             
             <div className="p-6 overflow-y-auto space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                  <p className="text-white/40 text-xs font-bold uppercase tracking-widest mb-1">Game Name</p>
-                  <p className="text-white text-lg font-medium">{selectedUser.games?.name || 'N/A'}</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                  <p className="text-white/40 text-xs font-bold uppercase tracking-widest mb-1">Registration Date</p>
-                  <p className="text-white text-lg font-medium">{new Date(selectedUser.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                </div>
                 <div className="bg-white/5 p-4 rounded-xl border border-white/10">
                   <p className="text-white/40 text-xs font-bold uppercase tracking-widest mb-1">Full Name</p>
                   <p className="text-white text-lg font-medium">{selectedUser.full_name}</p>
@@ -586,40 +569,18 @@ export default function UsersPage() {
             
             <form onSubmit={handleManualAdd} className="p-6 overflow-y-auto space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(() => {
-                  const selectedGame = games.find(g => g.id === formData.game_id);
-                  const isFighting = selectedGame?.game_categories?.slug === 'fighting' || selectedGame?.name?.toLowerCase().includes('tekken');
-                  
-                  return (
-                    <>
-                      <div>
-                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">
-                          {isFighting ? 'Player Name *' : 'Full Name *'}
-                        </label>
-                        <input required type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50" placeholder="John Doe" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">
-                          {isFighting ? 'In-Game Name (IGN) (Optional)' : 'BGMI ID *'}
-                        </label>
-                        <input required={!isFighting} type="text" value={formData.bgmi_id} onChange={e => setFormData({...formData, bgmi_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50" placeholder={isFighting ? "Optional IGN" : "e.g. 22222, 33333"} />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Game *</label>
-                        <select required value={formData.game_id} onChange={e => setFormData({...formData, game_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 appearance-none">
-                          <option value="">Select Game</option>
-                          {games.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                        </select>
-                      </div>
-                      {!isFighting && (
-                        <div>
-                          <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Team Name</label>
-                          <input type="text" value={formData.team_name} onChange={e => setFormData({...formData, team_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50" placeholder="Team Soul" />
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Full Name *</label>
+                  <input required type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50" placeholder="John Doe" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">BGMI ID *</label>
+                  <input required type="text" value={formData.bgmi_id} onChange={e => setFormData({...formData, bgmi_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50" placeholder="e.g. 22222, 33333" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Team Name</label>
+                  <input type="text" value={formData.team_name} onChange={e => setFormData({...formData, team_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50" placeholder="Team Soul" />
+                </div>
                 <div>
                   <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Mobile Number *</label>
                   <input required type="text" value={formData.mobile_number} onChange={e => setFormData({...formData, mobile_number: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50" placeholder="+91" />
@@ -649,6 +610,10 @@ export default function UsersPage() {
                 <div>
                   <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">UPI ID / Payment Note *</label>
                   <input required type="text" value={formData.upi_id} onChange={e => setFormData({...formData, upi_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50" placeholder="e.g. CASH or upi@bank" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Registration Date *</label>
+                  <input type="text" value={new Date().toLocaleDateString('en-GB').replace(/\\//g, '-')} readOnly className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed focus:outline-none" />
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Time Slot *</label>
@@ -698,40 +663,18 @@ export default function UsersPage() {
             
             <form onSubmit={handleEditSubmit} className="p-6 overflow-y-auto space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(() => {
-                  const selectedGame = games.find(g => g.id === editFormData.game_id);
-                  const isFighting = selectedGame?.game_categories?.slug === 'fighting' || selectedGame?.name?.toLowerCase().includes('tekken');
-                  
-                  return (
-                    <>
-                      <div>
-                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">
-                          {isFighting ? 'Player Name *' : 'Full Name *'}
-                        </label>
-                        <input required type="text" value={editFormData.full_name} onChange={e => setEditFormData({...editFormData, full_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">
-                          {isFighting ? 'In-Game Name (IGN) (Optional)' : 'BGMI ID *'}
-                        </label>
-                        <input required={!isFighting} type="text" value={editFormData.bgmi_id} onChange={e => setEditFormData({...editFormData, bgmi_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Game</label>
-                        <select required value={editFormData.game_id} onChange={e => setEditFormData({...editFormData, game_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 appearance-none">
-                          <option value="">Select Game</option>
-                          {games.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                        </select>
-                      </div>
-                      {!isFighting && (
-                        <div>
-                          <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Team Name</label>
-                          <input type="text" value={editFormData.team_name} onChange={e => setEditFormData({...editFormData, team_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Full Name *</label>
+                  <input required type="text" value={editFormData.full_name} onChange={e => setEditFormData({...editFormData, full_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">BGMI ID *</label>
+                  <input required type="text" value={editFormData.bgmi_id} onChange={e => setEditFormData({...editFormData, bgmi_id: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Team Name</label>
+                  <input type="text" value={editFormData.team_name} onChange={e => setEditFormData({...editFormData, team_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
+                </div>
                 <div>
                   <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Mobile Number *</label>
                   <input required type="text" value={editFormData.mobile_number} onChange={e => setEditFormData({...editFormData, mobile_number: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50" />
@@ -822,45 +765,27 @@ export default function UsersPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">Start Time</label>
-                    <select 
+                    <input 
+                      type="time" 
                       required
                       value={newSlotStart}
                       onChange={e => setNewSlotStart(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 appearance-none cursor-pointer" 
-                    >
-                      <option value="">Select Time</option>
-                      {Array.from({ length: 48 }).map((_, i) => {
-                        const h = Math.floor(i / 2);
-                        const m = (i % 2) * 30;
-                        const d = new Date();
-                        d.setHours(h, m);
-                        const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                        return <option key={`start-${i}`} value={timeStr}>{timeStr}</option>;
-                      })}
-                    </select>
+                      className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50" 
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-1 block">End Time</label>
-                    <select 
+                    <input 
+                      type="time" 
                       required
                       value={newSlotEnd}
                       onChange={e => setNewSlotEnd(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 appearance-none cursor-pointer" 
-                    >
-                      <option value="">Select Time</option>
-                      {Array.from({ length: 48 }).map((_, i) => {
-                        const h = Math.floor(i / 2);
-                        const m = (i % 2) * 30;
-                        const d = new Date();
-                        d.setHours(h, m);
-                        const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                        return <option key={`end-${i}`} value={timeStr}>{timeStr}</option>;
-                      })}
-                    </select>
+                      className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50" 
+                    />
                   </div>
                 </div>
                 <button 
-                  type="submit"  
+                  type="submit" 
                   className="w-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 font-bold uppercase tracking-widest py-3 rounded-xl transition-colors border border-purple-500/30 flex items-center justify-center gap-2"
                 >
                   <Plus className="w-4 h-4" /> Add Slot
@@ -899,3 +824,7 @@ export default function UsersPage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync(path.join(__dirname, '../src/app/dashboard/users/page.tsx'), content);
+console.log('Successfully rewrote users page.');
